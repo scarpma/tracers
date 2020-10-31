@@ -1,0 +1,2 @@
+export CUDA_VISIBLE_DEVICES=1
+python job_many.py >& log_job_many.txt
