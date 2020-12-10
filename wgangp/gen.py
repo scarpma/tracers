@@ -13,6 +13,21 @@ def build_generator(fs, fm, init_sigma, init_mean, alpha, noise_dim):
         dei pesi del  modello
     alpha = 0.3 pendenza parte negativa del leaky relu
     """
+    kernel_size=21
+    def gaussiana(x, m=0., std=1.):
+        return (1./np.sqrt(2.*np.pi*std**2.))*np.exp(-(x-m)**2./(2.*std**2.))
+
+    def prepare_gaussian_w(kernel_size, input_channels):
+        x = np.zeros(shape=(kernel_size, 1, input_channels, 1))
+        for i in range(input_channels):
+            x[:,0,i,0] = np.arange(-(kernel_size-1)//2, (kernel_size+1)//2, 1)
+            print(np.arange(-(kernel_size-1)//2, (kernel_size+1)//2, 1))
+        return gaussiana(x, m=0, std=3)
+
+    def gaussian_layer(kernel_size):
+        return DepthwiseConv2D((kernel_size,1), use_bias=False, padding='same')
+
+    g_layer = gaussian_layer(kernel_size)
 
     reg = l2(l=0.001)
     #reg = l1(l=0.001)
@@ -52,6 +67,7 @@ def build_generator(fs, fm, init_sigma, init_mean, alpha, noise_dim):
         kernel_initializer=RandomNormal(init_mean, init_sigma)))
     #generator.add(ELU())
     generator.add(ReLU())
+    #generator.add(g_layer)
     generator.add(BatchNormalization(momentum=0.8))
     generator.add(Conv2DTranspose(CHANNELS, fs, strides=(2,1), padding='same',
         kernel_regularizer=reg, bias_regularizer=reg,
@@ -64,6 +80,15 @@ def build_generator(fs, fm, init_sigma, init_mean, alpha, noise_dim):
     #     kernel_initializer=RandomNormal(init_mean, init_sigma)))
 
     generator.add(Reshape((2000, CHANNELS)))
+
+    kw = prepare_gaussian_w(kernel_size, 8)
+    #g_layer.set_weights([kw])
+
+    #for i in range(8):
+    #    print(kw[:,0,i,0])
+
+    #g_layer.trainable = False
+
     generator.summary()
 
 

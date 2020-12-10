@@ -17,7 +17,7 @@ from tensorflow.keras.initializers import RandomNormal
 from tensorflow.keras.regularizers import l2, l1
 from tensorflow.keras.layers import (Dense, Conv1D, Conv2D, Conv2DTranspose,
                                      Flatten, Dropout, ReLU, Input, Reshape,
-                                     BatchNormalization, Activation, ELU)
+                                     BatchNormalization, Activation, ELU, DepthwiseConv2D)
 from tensorflow.keras.models import Sequential, Model
 import tensorflow.keras.backend as K
 from tensorflow.keras.models import load_model
