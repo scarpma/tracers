@@ -73,7 +73,7 @@ if plot_gen and (not read_gen):
         nn = nn + 1
         save_path = '../data/'+WGAN_TYPE+f'/runs/{run}/sf_{run}_{number}_we_{str(nn).zfill(4)}.dat'
 elif plot_gen and read_gen:
-    write_path = f'runs/{run}/{number}_sf_we_mean'
+    write_path = f'runs/{run}/{number}_sf_we_mean_mod'
 else:
     write_path = f'../data/real/real_sfs.dat'
 
@@ -127,6 +127,9 @@ dlr[:,1:] =  np.gradient( np.log(sfr[:,1:]), np.log(sfr[:,0]), axis=0 )
 op_gen = {'marker':'.','lw':0.4,'ms':25,'markeredgewidth':1 ,
           'markeredgecolor':"black"}
 op_real = {'marker':'^','lw':0.4,'ms':14}
+op_gen_mod = {'marker':'.','lw':0.4,'ms':25,'markeredgewidth':1 ,
+          }
+op_real_mod = {'marker':'^','lw':0.4,'ms':14}
 op_leg = {'markerscale':1, 'ncol':2}
 op_leg_1 = {'markerscale':1, 'ncol':3}
 
@@ -156,7 +159,8 @@ ax[1,0].set_xscale('log')
 #ax[1,0].set_ylim([-0.3,7])
 ax[1,0].set_xlabel("$\\tau$")
 ax[1,0].set_ylabel("$\\xi_n(\\tau)$")
-ax[1,1].set_ylim([0,7.5])
+ax[1,1].set_ylim([-0.5,3.5])
+ax[1,1].set_xlim([10,700])
 ax[1,1].set_xscale('log')
 ax[1,1].set_xlabel("$\\tau$")
 ax[1,1].set_ylabel("$\\xi_n(\\tau)/ \\xi_2(\\tau)$")
@@ -196,11 +200,11 @@ if plot_gen:
 # locslopes
 for ii in range(1,7):
     ax[1,0].plot(*(dlr[:,[0,ii]].T), label="DNS n="+str((ii)*2),
-                 color='C'+str(ii-1),**op_real)
+                 markeredgecolor='C'+str(ii-1),**op_real_mod, markerfacecolor='none')
 if plot_gen:
     for ii in range(1,7):
         ax[1,0].plot(*(dlg[:,[0,ii]].T),# label="GAN n= "+str((ii)*2),
-                     color='C'+str(ii-1),**op_gen)
+                     markeredgecolor='C'+str(ii-1),**op_gen_mod, markerfacecolor='none')
 
 #locslopes ess
 ax[1,1].plot(dlr[:,0], (lambda x: [4/2]*len(x))(dlr[:,0]),ls='--',

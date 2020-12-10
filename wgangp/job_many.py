@@ -11,7 +11,7 @@ now = datetime.now()
 dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
 print("ESECUZIONE: ", dt_string, "\n")
 
-run = 12
+run = 3
 number = 1750
 batchs_per_iter = 10 # va moltiplicato per batch_size (di solito 50k) 
 iters = 100

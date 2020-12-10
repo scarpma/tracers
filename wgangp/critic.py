@@ -13,6 +13,7 @@ def build_critic(fs, fm, init_sigma, init_mean, alpha):
         pesi del  modello
     """
     reg = l2(l=0.001)
+    #reg = l1(l=0.001)
 
     d = Sequential()
     #2000x1
