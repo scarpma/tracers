@@ -18,7 +18,7 @@ import os.path as osp
 # COMMAND LINE PARSING
 
 if "-h" in sys.argv:
-    print("usage: plot_sf.py <run> <number> [--no_plot]")
+    print("usage: sf_analysis.py <run> <number> [--no_plot]")
     exit()
 
 run = int(sys.argv.pop(1))
