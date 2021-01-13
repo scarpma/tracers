@@ -7,8 +7,10 @@ import os.path
 import subprocess
 import sys
 sys.path.insert(0, '.')
+sys.path.insert(0, '..')
 import glob
 import argparse
+import stats
 
 import tensorflow
 import tensorflow.keras
@@ -24,9 +26,11 @@ from tensorflow.keras.models import load_model
 from functools import partial
 
 import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib as mpl
+mpl.use('Agg')
+import matplotlib.pyplot as plt
 
+import scipy.ndimage as ff
 
 def load_data(val_split):
 
@@ -38,6 +42,10 @@ def load_data(val_split):
     semidisp = (M-m)/2.
     media = (M+m)/2.
     db = (db - media)/semidisp
+    
+    #APPLY SMOOTHING TO THE ORIGINAL DATASET Only IF Requested
+    if SMOOTH_REAL_DB:
+        db = ff.gaussian_filter1d(db, sigma=sigma_smooth_real,mode='nearest',truncate=trunc_smooth_real)
 
     if val_split < 1.:
         end = round(val_split * db.shape[0])

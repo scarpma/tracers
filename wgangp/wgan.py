@@ -182,7 +182,195 @@ class WGANGP():
         plt.close()
 
 
+    def compute_pdf_real(self, db_real):
+        #Remove Borders (not for real data)
+        velo = db_real[:,:,COMPONENTS] # WE WITHOUT EXTREMES
+
+        #Renorm dataset
+        semidisp = (DB_MAX-DB_MIN)/2.
+        media = (DB_MAX+DB_MIN)/2.
+        velo = velo * semidisp + media
+
+        #Compute first der
+        acce = np.gradient(velo,axis=1)
+
+        #Compute PDF
+        nbins=600
+        pdf_ve_real, bin_ve_real = np.histogram(velo.flatten(), nbins, (-12,12), density=True)
+        pdf_ac_real, bin_ac_real = np.histogram(acce.flatten(), nbins, (-6,6),   density=True)
+
+        return pdf_ve_real, pdf_ac_real
+
+
+    def compute_local_slopes(self, sfg, sfr):
+        # COMPUTE LOG DERIVATIVES
+
+        dlg       = np.zeros(shape=sfg.shape)
+        dlg[:,0]  = sfg[:,0]
+        dlg[:,1:] =  np.gradient( np.log(sfg[:,1:]), np.log(sfg[:,0]), axis=0 )
+
+        dlr       = np.zeros(shape=sfr.shape)
+        dlr[:,0]  = sfr[:,0]
+        dlr[:,1:] = np.gradient( np.log(sfr[:,1:]), np.log(sfr[:,0]), axis=0 )
+    
+        # COMPUTE LOG DERIVATIVES ESS
+
+        dlg_ess       = np.zeros(shape=(dlg.shape[0], dlg.shape[1]-1))
+        dlg_ess[:,0]  = dlg[:,0]
+        for ii in range(1, sfg.shape[1]-1):
+            dlg_ess[:,ii] = dlg[:,ii+1] / dlg[:,1]
+            
+        dlr_ess       = np.zeros(shape=(dlr.shape[0], dlr.shape[1]-1))
+        dlr_ess[:,0]  = dlr[:,0]
+        for ii in range(1, sfr.shape[1]-1):
+            dlr_ess[:,ii] = dlr[:,ii+1] / dlr[:,1]
+
+        return dlg, dlr, dlg_ess, dlr_ess
+
+
+    def plot_statistics(self, mini_db, epoch, pdf_ve_real, pdf_ac_real):
+        #Remove Borders
+        velo = mini_db[:,100:1900,:] # WE WITHOUT EXTREMES
+        #Compute first der
+        acce = np.gradient(velo,axis=1)
+
+        #Compute PDF
+        nbins=600
+        pdf_ve_gen, bins_ve = np.histogram(velo.flatten(), nbins, (-12,12), density=True)
+        pdf_ac_gen, bins_ac = np.histogram(acce.flatten(), nbins, (-6,6),   density=True)
+
+        #Compute SF
+        sf_gen = stats.compute_sf(velo)
+
+        #Read SF real
+        read_file_real = '../data/real/sf.dat'
+        sf_real = np.loadtxt(read_file_real)
+
+        #Compute LS
+        ls_gen, ls_real, ess_gen, ess_real = self.compute_local_slopes(sf_gen, sf_real)
+
+        #Plot PDF
+        op_gen = {'marker':'.','lw':0.4,'ms':5,'label':'GAN'}
+        op_real = {'marker':'^','lw':0.4,'ms':7,'label':'DNS'}
+        op_leg = {'ncol':1}
+
+        plt.rcParams['font.size'] = 24
+        plt.rcParams['xtick.labelsize'] = 20
+        plt.rcParams['ytick.labelsize'] = 20
+        plt.rcParams['legend.fontsize'] = 17
+        plt.rcParams['figure.dpi'] = 60
+        plt.rcParams['figure.figsize'] = (15, 6)
+        plt.rcParams['legend.markerscale'] = 2
+
+        fig, ax = plt.subplots(1,2, )
+        ax[0].set_yscale('log')
+        ax[1].set_yscale('log')
+        ax[0].set_xlabel('$v_x$')
+        ax[1].set_xlabel('$a_x$')
+        ax[0].set_ylabel('PDF$(v_x)$')
+        ax[1].set_ylabel('PDF$(a_x)$')
+        #ax[0,0].set_xlim([-4,4])
+        #ax[0,1].set_xlim([-4,4])
+
+        ax[0].plot(bins_ve[:-1], pdf_ve_gen, **op_gen)
+        ax[1].plot(bins_ac[:-1], pdf_ac_gen, **op_gen)
+        ax[0].plot(bins_ve[:-1], pdf_ve_real, **op_real)
+        ax[1].plot(bins_ac[:-1], pdf_ac_real, **op_real)
+
+        ax[0].legend(**op_leg)
+        ax[1].legend(**op_leg)
+
+        fig.tight_layout()
+        fig.savefig(self.dir_path+f'{epoch}_pdfs.png', fmt='png', dpi=60)
+
+        #Define Figure for SF
+        op_gen = {'marker':'.','lw':0.4,'ms':25,'markeredgewidth':1, 'markeredgecolor':"black"}
+        op_real = {'marker':'^','lw':0.4,'ms':14}
+        op_leg = {'markerscale':1, 'ncol':2}
+        op_leg_1 = {'markerscale':1, 'ncol':3}
+
+        plt.rcParams['figure.figsize'] = (17, 12)
+
+        fig, ax = plt.subplots(2,2)
+
+        ax[0,0].set_yscale('log')
+        ax[0,0].set_xscale('log')
+        ax[0,0].set_xlabel("$\\tau$")
+        ax[0,0].set_ylabel('$S_n(\\tau)$')
+        ax[0,1].set_xscale('log')
+        ax[0,1].set_xlabel("$\\tau$")
+        ax[0,1].set_ylabel("$F_n(\\tau)$")
+        ax[0,1].set_yscale('log')
+        ax[0,1].grid(which='minor', alpha=0.2)
+        ax[0,1].grid(which='major', alpha=0.9)
+        ax[1,0].set_xscale('log')
+        ax[1,0].set_xlabel("$\\tau$")
+        ax[1,0].set_ylabel("$\\xi_n(\\tau)$")
+        ax[1,1].set_ylim([0,7.5])
+        ax[1,1].set_xscale('log')
+        ax[1,1].set_xlabel("$\\tau$")
+        ax[1,1].set_ylabel("$\\xi_n(\\tau)/ \\xi_2(\\tau)$")
+
+        # PLOT SF
+        for ii in range(1,7):
+            ax[0,0].plot(sf_real[:,0],sf_real[:,ii],label="DNS n="+str((ii)*2),
+                         color='C'+str(ii-1),**op_real)
+        for ii in range(1,7):
+            ax[0,0].plot(sf_gen[:,0],sf_gen[:,ii],#label="GAN n="+str((ii)*2),
+                         color='C'+str(ii-1),**op_gen)
+
+
+        # PLOT FLATNESS
+        ax[0,1].plot(sf_real[:,0], sf_real[:,2]/(sf_real[:,1]**2), label="DNS $F_4$",
+                     color='C1',**op_real)
+        ax[0,1].plot(sf_real[:,0], sf_real[:,3]/(sf_real[:,1]**3), label="DNS $F_6$",
+                     color='C2',**op_real)
+
+        ax[0,1].plot(sf_gen[:,0], sf_gen[:,2]/(sf_gen[:,1]**2),# label="GAN $F_4$",
+                     color='C1',**op_gen)
+        ax[0,1].plot(sf_gen[:,0], sf_gen[:,3]/(sf_gen[:,1]**3),# label="GAN $F_6$",
+                     color='C2',**op_gen)
+
+
+        # PLOT LOGARITMIC DERIVATIVES
+        for ii in range(1,4):
+            ax[1,0].plot(*(ls_real[:,[0,ii]].T), label="DNS n="+str((ii)*2),
+                         color='C'+str(ii-1),**op_real)
+        for ii in range(1,4):
+            ax[1,0].plot(*(ls_gen[:,[0,ii]].T),# label="GAN n= "+str((ii)*2),
+                         color='C'+str(ii-1),**op_gen)
+
+
+        # PLOT CONSTANT VALUES FOR ESS REFERENCE
+        ax[1,1].plot(ls_real[:,0], (lambda x: [4/2]*len(x))(ls_real[:,0]),ls='--',
+                     color="C1")
+        ax[1,1].plot(ls_real[:,0], (lambda x: [6/2]*len(x))(ls_real[:,0]),ls='--',
+                     color="C2")
+
+        # PLOT LOGARITMIC DERIVATIVES IN ESS
+        for ii in range(2):
+            ax[1,1].plot(ess_real[:,0], ess_real[:,ii+1],label="DNS n="+str((ii+2)*2),
+                         color='C'+str(ii+1),**op_real)
+        for ii in range(2):
+            ax[1,1].plot(ess_gen[:,0], ess_gen[:,ii+1],#label="GAN n="+str((ii+2)*2),
+                         color='C'+str(ii+1),**op_gen)
+
+
+        ax[0,0].legend(**op_leg)
+        ax[0,1].legend(**op_leg_1, loc='upper right')
+        ax[1,0].legend(**op_leg)
+        ax[1,1].legend(**op_leg)
+
+        fig.tight_layout()
+        fig.savefig(self.dir_path+f'{epoch}_sf.png', fmt='png', dpi=60)
+
+        
+
     def train(self, gen_iters, db_train, db_test):
+
+
+        # Compute PDF real dataset #
+        pdf_ve_real, pdf_ac_real = self.compute_pdf_real(db_train)
 
         # salvo info log #
         with open(self.dir_path+'logs.txt','a+') as f:
@@ -271,17 +459,18 @@ class WGANGP():
                 self.critic.save(self.dir_path+f'{gen_iter}_critic.h5')
                 self.gen.save(self.dir_path+f'{gen_iter}_gen.h5')
 
-            if gen_iter % 2000 == 0:
+            if gen_iter % 1000 == 0:
                 mini_db = self.gen.predict(self.gen_noise(50000))
                 mini_db = mini_db * semidisp + media
-                np.save(self.dir_path+f'gen_trajs_{gen_iter}', mini_db)
-                del mini_db
-                command_line = ["python", "graphics/plot_pdfs.py",
-                        str(self.current_run), str(gen_iter), "--scratch"]
-                subprocess.Popen(command_line, stdout=log_fl, stderr=log_fl)
-                command_line = ["python", "graphics/plot_sf.py",
-                        str(self.current_run), str(gen_iter), "--scratch"]
-                subprocess.Popen(command_line, stdout=log_fl, stderr=log_fl)
+                #np.save(self.dir_path+f'gen_trajs_{gen_iter}', mini_db)
+                #del mini_db
+                self.plot_statistics(mini_db, gen_iter, pdf_ve_real, pdf_ac_real)
+                #command_line = ["python", "graphics/plot_pdfs.py",
+                #        str(self.current_run), str(gen_iter), "--scratch"]
+                #subprocess.Popen(command_line, stdout=log_fl, stderr=log_fl)
+                #command_line = ["python", "graphics/plot_sf.py",
+                #        str(self.current_run), str(gen_iter), "--scratch"]
+                #subprocess.Popen(command_line, stdout=log_fl, stderr=log_fl)
 
         log_fl.close()
 
